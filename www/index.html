@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+
+    <link rel="stylesheet" href="imagenes/responsiveslides.css" />
+    <link rel="stylesheet" href="imagenes/demo.css" />
+    <link rel="stylesheet" href="maps/maps.css" />
+	<link rel="stylesheet" href="themes/jquery.mobile.icons.min.css" />
+	<link rel="stylesheet" href="themes/tema.min.css" />
+	<link rel="stylesheet" href="jquery.mobile-1.4.5/jquery.mobile-1.4.5.min.css" />   
+    <script src="jquery-1.8.3.min.js"></script>
+    <script src="jquery.mobile-1.4.5/jquery.mobile-1.4.5.min.js"></script>   
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBTOSzZMRiIpxTtl5uRkOE6kZL471iqGSs&sensor=false"></script>
+    
+    <script src="cordova.js"></script>
+    <script src="js/app.js"></script>           
+    <script src="xdk/init-dev.js"></script>
+    
+    <script src="imagenes/responsiveslides.js"></script>
+
+    
+    
+	<script type="text/javascript">
+        
+        db = window.openDatabase('BDbuscAPP', '1.0', 'BD BuscAPP', 1024*1024*5);
+        
+        
+        $(document).ready(function(){
+            iniciarBD();
+            $(".salir").hide();
+            $(".btnfavorito").hide();
+
+        });
+        
+
+
+        function iniciarBD(){
+
+            db.transaction(function(tx){
+                tx.executeSql("CREATE TABLE IF NOT EXISTS Usuario(user unique, pass, nombre, tel)");
+            });
+            db.transaction(function(tx){
+                tx.executeSql("CREATE TABLE IF NOT EXISTS Favorito(user, favorito, tel)");
+            });
+        }
+        
+        function salir(){
+            localStorage.removeItem("mylogin");
+            
+            $("#btnIngresar_home").text("Ingresar").prop('disabled', false).removeClass('ui-disabled');
+            $("#btnIngresar_resultado").text("Ingresar").prop('disabled', false).removeClass('ui-disabled');
+            $("#btnIngresar_ingresar").text("Ingresar").prop('disabled', false).removeClass('ui-disabled');
+            $("#btnIngresar_favoritos").text("Ingresar").prop('disabled', false).removeClass('ui-disabled');
+            $("#btnIngresar_ubicacion").text("Ingresar").prop('disabled', false).removeClass('ui-disabled');
+            
+
+            $.mobile.loading('hide');
+            $(".salir").hide();
+            $(".btnfavorito").hide();
+        }
+        
+        function registrar(){
+            $("#nom_r").parent().css('border-color','black');
+            $("#tel_r").parent().css('border-color','black');
+            $("#user_r").parent().css('border-color','black');
+            $("#pass_r").parent().css('border-color','black');
+            $("#pass2_r").parent().css('border-color','black');
+            $("#msj_r").text("");
+            
+            var retorno = true;
+            
+            // Nombre
+            
+            if($("#nom_r").val().trim() == ""){
+                $("#nom_r").parent().css('border-color','red');
+                retorno = false;
+            }
+            // Tel
+            
+            if($("#tel_r").val().trim() == ""){
+                $("#tel_r").parent().css('border-color','red');
+                retorno = false;
+            }
+            // Usuario
+            
+            if($("#user_r").val().trim() == ""){
+                $("#user_r").parent().css('border-color','red');
+                retorno = false;
+            }
+            // Password
+           
+            if($("#pass_r").val().trim() == ""){
+                $("#pass_r").parent().css('border-color','red');
+                retorno = false;
+            }
+            // Password
+            
+            if($("#pass2_r").val().trim() == ""){
+                $("#pass2_r").parent().css('border-color','red');
+                retorno = false;
+            }
+            
+            if(retorno == true){
+                if($("#pass2_r").val().trim() == $("#pass_r").val().trim()){
+    
+                    var nom = $("#nom_r").val().trim();
+                    var tel = $("#tel_r").val().trim();
+                    var user = $("#user_r").val().trim();
+                    var pass = $("#pass_r").val().trim();
+
+                    db.transaction(function(tx){
+                        tx.executeSql("SELECT * FROM Usuario WHERE user=?",[user],function(tx,results){
+                            if(results.rows.length != 1){
+                                db.transaction(function(tx){
+                                    tx.executeSql('INSERT INTO Usuario (user, pass, nombre, tel) VALUES (?, ?, ?, ?)', [user, pass, nom, tel]);
+                                });
+                                
+                                $("#nom_r").val("");
+                                $("#tel_r").val("");
+                                $("#user_r").val("");
+                                $("#pass_r").val("");
+                                $("#pass2_r").val("");
+
+                                $("#nom_r").parent().css('border-color','black');
+                                $("#tel_r").parent().css('border-color','black');
+                                $("#user_r").parent().css('border-color','black');
+                                $("#pass_r").parent().css('border-color','black');
+                                $("#pass2_r").parent().css('border-color','black');
+
+                                $("#msj_r").val("");
+
+                                localStorage.setItem("mylogin", user);
+
+                                $("#btnIngresar_home").text(user).prop('disabled', true).addClass('ui-disabled');
+                                $("#btnIngresar_resultado").text(user).prop('disabled', true).addClass('ui-disabled'); 
+                                $("#btnIngresar_favoritos").text(user).prop('disabled', true).addClass('ui-disabled');
+                                $("#btnIngresar_ubicacion").text(user).prop('disabled', true).addClass('ui-disabled');
+                                $(".salir").show();
+                                $(".btnfavorito").show();
+                                $.mobile.changePage("#home");          
+                            }
+                            else{
+                                $("#user_r").val("");
+                                $("#user_r").parent().css('border-color','red');
+                                $("#msj_r").text("Usuario no dispobible.");
+                            }
+                        });
+                    });
+                }
+                else{
+                    $("#pass_r").parent().css('border-color','red');
+                    $("#pass2_r").parent().css('border-color','red');
+                    $("#msj_r").text("Las contraseñas tienen que ser iguales.");
+                }
+            }
+        }
+        
+    	function login(){
+            $("#lbluser").text("");
+            if($("#user").val() == "" && $("#pass").val() == "") {
+                $("#lbluser").text("Usuario y Password obligatorio."); 
+                return;  
+            }
+            else if($("#pass").val() == ""){
+                $("#lbluser").text("Password obligatoria."); 
+                return;
+            }
+            else if($("#user").val() == ""){
+                $("#lbluser").text("Usuario obligatoria."); 
+                return;
+            }
+            else{
+                checkLogin();
+                $("#user").val("");
+                $("#pass").val("");
+                return;
+            }
+         }
+    		 
+        
+        function checkLogin() {
+            $("#lbluser").text("");
+            var u = $("#user").val().trim();
+            var p = $("#pass").val().trim();
+            db.transaction(function(tx){
+                tx.executeSql("SELECT * FROM Usuario WHERE user=? and pass=?",[u,p],function(tx,results){
+                    if(results.rows.length == 1)
+                    {
+                        $("#lbluser").text("");
+                        
+                        // "mostrar" es el usuario logueado.
+                        var mostrar = results.rows.item(0).user;
+                        localStorage.setItem("mylogin", mostrar);
+                        
+                        $("#btnIngresar_home").text(mostrar).prop('disabled', true).addClass('ui-disabled');
+                        $("#btnIngresar_resultado").text(mostrar).prop('disabled', true).addClass('ui-disabled');
+                        $("#btnIngresar_favoritos").text(mostrar).prop('disabled', true).addClass('ui-disabled');
+                        $("#btnIngresar_ubicacion").text(mostrar).prop('disabled', true).addClass('ui-disabled');
+                        $(".salir").show();
+                        $(".btnfavorito").show();
+                        $.mobile.changePage("#home");
+                    }
+                    else{
+                        $("#lbluser").text("Usuario y/o Password incorrecto.");
+                    }
+                });
+            });
+        }
+        
+
+		function buscar() {
+            if($("#idBuscar").val() == ""){
+                $("#idBuscar").parent().css('border-color','red');
+                $.mobile.loading("hide");
+                return false;
+            }
+            
+            var opcion = "MLU1466" //"MLU1467"; //"MLU1466"; //Casa
+            if($("#btnApto").hasClass("ui-btn-active") == true){
+                opcion = "MLU1472" //"MLU1473"; //"MLU1472"; //Apartamentos
+            }
+
+			$.mobile.changePage("#resultado");
+			$.mobile.loading("show");
+			$.ajax({
+				data: {q : $('#idBuscar').val()},
+				type: "GET",
+				dataType: "json",
+				url: "https://api.mercadolibre.com/sites/MLU/search?category="+opcion, 
+                // MLU1459 --> Categoría Inmuebles / Subcategorias "MLU1472" --> Apartamenteos / "MLU1466" --> Casas
+				success: function(data){
+					resul = data;
+					mostrarLis();
+					$.mobile.loading("hide");
+                    $("#idBuscar").val("");
+                    $("#idBuscar").parent().css('border-color','black');
+				}
+			});
+		}
+
+		function mostrarLis(){
+			var lista = $('#lista');
+			lista.empty();
+            res = resul.results;
+			for(var i = 0; i<resul.results.length;i++){
+				var aux = resul.results[i];
+                var tel = resul.results[i].seller_contact.phone.toString().trim();
+                
+                
+				lista.append("<li><a href='#resultado' data-id='"+i+"' data-tel='"+tel+"' onclick='cargar($(this).attr(\"data-id\"), $(this).attr(\"data-tel\"));'><img src='"+aux.thumbnail+"' alt='IMAGEN'/><h2>"+aux.title+"</h2><p>"+aux.currency_id+" "+aux.price+"</p></a></li>");
+			}
+			lista.listview("refresh");
+		}
+        
+        
+		function cargar(id, tel){
+            //limpio por las dudas
+            $("#title").text("");
+            $("#price").text("");
+            $("#contact").attr('href', "").text("");
+            
+			$.mobile.loading("show");
+			$.ajax({
+				type: "GET",
+				dataType: "json",
+				url: "https://api.mercadolibre.com/items?ids="+resul.results[id].id,
+                success: function(data){
+                    localStorage.setItem("idI", resul.results[id].id);
+                    var lat = resul.results[id].location.latitude;
+                    var lon = resul.results[id].location.longitude;
+                    
+                    var item = data[0]; 
+                    
+                    // Titulo, precio
+                    $("#title").text(item.title);
+                    $("#price").text("Precio: " + item.currency_id + " " + item.price);
+                    
+                    // Contacto
+                    // toString por las dudas que sea numerico. Aveces viene correo en phone(api mercadolibre)
+                    if(tel.toString().trim() == ""){
+                        $("#contact").text("No se ingresó contacto");
+                    }
+                    else{
+                        $("#contact").attr('href', 'tel: '+tel).text(tel.toString());
+                        localStorage.setItem("tel", tel.toString());
+                    }
+                    
+                    // Obtengo la operacion, Si es Venta o Alquiler, o Alquier Temporada.. etc
+                    
+                    for (var i = 0; i < item.attributes.length; i++){
+                      if(item.attributes[i].name == "Operación"){
+                         localStorage.setItem("operacion", item.attributes[i].value_name);
+                      }
+                    }
+                    
+                    $("#op").text("Operación: " + localStorage.getItem("operacion"));
+                    
+                    
+                    $.mobile.changePage("#detalle");
+                    
+                    $('#detalle').on('pageshow', function(event, ui) {
+                        // Cargo el mapa una vez lista la page
+                        localizar(lat, lon);
+                        // Cargo las imagenes 
+                        cargarImagenes();
+                    });
+                    
+                    $.mobile.loading("hide");
+				}
+			});
+            $.ajax({
+				type: "GET",
+				dataType: "json",
+				url: "https://api.mercadolibre.com/items/"+resul.results[id].id+"/description",
+                success: function(data){
+                                   
+					if(data.text=="")
+						$("#contenido_detalle").html(data.plain_text);
+					else
+						$("#contenido_detalle").html(data.text);
+				}
+			});
+		}
+        
+        
+        function favoritos(){
+            db.transaction(function(tx){
+                tx.executeSql("SELECT favorito FROM Favorito WHERE user=?",[localStorage.getItem("mylogin")],function(tx,results){
+                    if(results.rows.length < 1){
+                        alert("Aún no tiene Favoritos");
+                        $.mobile.changePage("#home");
+                        $.mobile.loading("hide");
+                        return false;
+                    }
+                    else{
+                        $.mobile.loading("show");
+                        var ids = "";
+                        for(var i = 0; i < results.rows.length; i++){
+                            ids += results.rows.item(i).favorito + ",";
+                        }
+                        $.ajax({
+                            type: "GET",
+                            dataType: "json",
+                            url: "https://api.mercadolibre.com/items?ids="+ids,
+                                success: function(data){
+                                    var lista = $('#lista_f');
+                                    lista.empty();
+                                    for(var i = 0; i < data.length; i++){
+                                        var aux = data[i];
+                                        lista.append("<li><a href='#favoritos' data-id='"+aux.id+"' onclick='$.mobile.loading(\"show\");cargarFavorito($(this).attr(\"data-id\"))'><img src='"+aux.thumbnail+"' alt='IMAGEN'/><h2>"+aux.title+"</h2><p>"+aux.currency_id+" "+aux.price+"</p></a></li>");
+                                    }
+                                    lista.listview("refresh");
+                                    $.mobile.loading("hide");
+                                }
+                        });
+                    }
+                });
+            });
+        }
+        
+        function cargarFavorito(id){
+             //limpio por las dudas
+            $("#title_f").text("");
+            $("#price_f").text("");
+            $("#contact_f").attr('href', "").text("");
+            
+			$.mobile.loading("show");
+            
+            // Cargo el telefono
+              db.transaction(function(tx){
+                tx.executeSql("SELECT tel FROM Favorito WHERE user=? and favorito=?",[localStorage.getItem("mylogin"),id],function(tx,results){
+                    if(results.rows.length >= 1){
+                        if(results.rows[0].tel.toString().trim() == ""){
+                            $("#contact_f").text("No se ingresó contacto");
+                        }
+                        else{
+                            $("#contact_f").attr('href', 'tel: '+results.rows[0].tel.toString().trim()).text(results.rows[0].tel.toString().trim());
+                        } 
+                    }
+                    else{
+                        $("#contact_f").text("No se ingresó contacto");
+                    }
+                });
+              });
+            
+			$.ajax({
+				type: "GET",
+				dataType: "json",
+				//url: "https://api.mercadolibre.com/items/"+resul.results[id].id+"/description",
+				url: "https://api.mercadolibre.com/items?ids="+id,
+                success: function(data){
+                    localStorage.setItem("idI", id); // ya debería de estar cargado
+                    
+                    var item = data[0]; 
+                    
+                    var lat = item.location.latitude;
+                    var lon = item.location.longitude;
+                                        
+                    // Titulo, precio y contacto
+                    $("#title_f").text(item.title);
+                    $("#price_f").text("Precio: " + item.currency_id + " " + item.price);
+                    
+                    // Obtengo la operacion, Si es Venta o Alquiler, o Alquier Temporada.. etc
+                    
+                    for (var i = 0; i < item.attributes.length; i++){
+                      if(item.attributes[i].name == "Operación"){
+                         localStorage.setItem("operacion", item.attributes[i].value_name);
+                      }
+                    }
+                    
+                    $("#op_f").text("Operación: " + localStorage.getItem("operacion"));
+                           
+                    $.mobile.changePage("#detalle_favorito");
+                    
+                    $('#detalle_favorito').on('pageshow', function(event, ui) {
+                        // Cargo el mapa una vez lista la page
+                        localizar_f(lat, lon);
+                        // Cargo las imagenes 
+                        cargarImagenes_f();
+                    });
+                    
+                    $.mobile.loading("hide");
+				}
+			});
+            $.ajax({
+				type: "GET",
+				dataType: "json",
+				url: "https://api.mercadolibre.com/items/"+id+"/description",
+                success: function(data){
+                                   
+					if(data.text=="")
+						$("#contenido_detalle_f").html(data.plain_text);
+					else
+						$("#contenido_detalle_f").html(data.text);
+				}
+			});
+            
+		}
+        
+        function agregarFavorito(){
+            db.transaction(function(tx){
+                tx.executeSql('INSERT INTO Favorito (user, favorito, tel) VALUES (?, ?, ?)', [localStorage.getItem("mylogin"), localStorage.getItem("idI"), localStorage.getItem("tel")],function(){
+                    localStorage.removeItem("idI");
+                    localStorage.removeItem("tel");
+                    $.mobile.loading("hide");
+                    back();
+                });
+            });
+        }
+        
+        function eliminarFavorito(){
+            db.transaction(function(tx){
+                tx.executeSql('DELETE FROM Favorito WHERE user=? and favorito=?', [localStorage.getItem("mylogin"), localStorage.getItem("idI")],function(){
+                    localStorage.removeItem("idI");
+                    $.mobile.loading("hide");
+                    favoritos();
+                    $.mobile.changePage("#favoritos");
+                });
+            });
+        }
+        
+        function localizar(lat, lon) {
+            var ubicacion = new google.maps.LatLng(lat, lon);
+            var opciones = {
+                zoom: 15,
+                center: ubicacion,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            
+            var mapElem = $("#containerMapa").find("#mapa")[0];
+            var map = new google.maps.Map(mapElem, opciones);
+
+            var marcador = new google.maps.Marker({
+                    position: ubicacion,
+                    map: map,
+                    title: "El inmueble se encuentra aquí!"
+            });
+            
+  
+            google.maps.event.addDomListener(window, "resize", function() {
+                var center = map.getCenter();
+                google.maps.event.trigger(map, "resize");
+                map.setCenter(center); 
+            });        
+        }
+        
+        function localizar_f(lat, lon) {
+            var ubicacion = new google.maps.LatLng(lat, lon);
+            var opciones = {
+                zoom: 15,
+                center: ubicacion,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            
+            var mapElem = $("#containerMapa_f").find("#mapa_f")[0];
+            var map = new google.maps.Map(mapElem, opciones);
+
+            var marcador = new google.maps.Marker({
+                    position: ubicacion,
+                    map: map,
+                    title: "El inmueble se encuentra aquí!"
+            });
+            
+  
+            google.maps.event.addDomListener(window, "resize", function() {
+                var center = map.getCenter();
+                google.maps.event.trigger(map, "resize");
+                map.setCenter(center); 
+            });        
+        }
+        
+        
+        
+        function cargarImagenes(){
+            $.ajax({
+				type: "GET",
+				dataType: "json",
+				url: "https://api.mercadolibre.com/items?ids="+localStorage.getItem("idI"),
+				success: function(data){
+                    var imagenes = $('#galeria');
+                    imagenes.empty();
+					if(data[0].pictures.length > 0){
+                        imagenes.append("<ul class='rslides' id='slider'>");
+                        var imagenesUl = imagenes.find('#slider');
+						for(var i = 0; i < data[0].pictures.length; i++){
+                            imagenesUl.append("<li><img src='"+data[0].pictures[i].secure_url+"' /></li>");
+                        }
+                        miSlider();
+                    }
+					else{
+                        imagenes.append("<h2>No hay imagenes disponibles</h2>");
+                    }
+                }
+			});
+        }
+        
+        function cargarImagenes_f(){
+            $.ajax({
+				type: "GET",
+				dataType: "json",
+				url: "https://api.mercadolibre.com/items?ids="+localStorage.getItem("idI"),
+				success: function(data){
+                    var imagenes = $('#galeria_f');
+                    imagenes.empty();
+					if(data[0].pictures.length > 0){
+                        imagenes.append("<ul class='rslides' id='slider_f'>");
+                        var imagenesUl = imagenes.find('#slider_f');
+						for(var i = 0; i < data[0].pictures.length; i++){
+                            imagenesUl.append("<li><img src='"+data[0].pictures[i].secure_url+"' /></li>");
+                        }
+                        miSlider_f();
+                    }
+					else{
+                        imagenes.append("<h2>No hay imagenes disponibles</h2>");
+                    }
+                }
+			});
+        }
+        
+        function miSlider(){
+           $("#slider").responsiveSlides({
+                auto: false,
+                pause: false,
+                nav: true,
+                pager: false,
+                speed: 500,
+                namespace: "callbacks"
+          });
+        }
+        
+        function miSlider_f(){
+           $("#slider_f").responsiveSlides({
+                auto: false,
+                pause: false,
+                nav: true,
+                pager: false,
+                speed: 500,
+                namespace: "callbacks"
+          });
+        }
+
+        function back(){
+            window.history.back();
+        }
+
+
+        ///////////////////////
+        // Dispositivo listo //
+        //////////////////////
+        
+        document.addEventListener("deviceready", onDeviceReady, true);
+        
+        function onDeviceReady() {
+            document.addEventListener("volumedownbutton", onVolumeDownKeyDown, true);
+            console.log("Listo");
+        }
+        
+                
+        // F U N C I O N - - E X T R A 
+        // ___________________________
+        // ___________________________
+        
+       
+        
+        
+        function ubicarme(){
+            $.mobile.changePage("#ubicacion");
+                    
+            $('#ubicacion').on('pageshow', function(event, ui) {
+                localizar_u();
+            });
+        }
+        
+        function localizar_u(){            
+            // Consigo lat y lon
+            navigator.geolocation.getCurrentPosition(localizarSuccess, localizarError,{maximunAge: 300000,timeout:10000, enableHighAccuracy:true});
+        }
+        
+        function localizarSuccess(position){
+            $("#mapa_u").empty();
+            
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+
+            if(lat == null || lon == null){
+                $("#mapa_u").append("<h3 style='color: #e4ee5d;'>No se pudo ubicar!</h3>")
+                return;
+            }
+                
+            
+            var ubicacion = new google.maps.LatLng(lat, lon);
+            var opciones = {
+                zoom: 15,
+                center: ubicacion,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            
+            var mapElem = $("#containerMapa_u").find("#mapa_u")[0];
+            var map = new google.maps.Map(mapElem, opciones);
+
+            var marcador = new google.maps.Marker({
+                    position: ubicacion,
+                    map: map,
+                    title: "Ud. se encuentra aquí!"
+            });
+            
+  
+            google.maps.event.addDomListener(window, "resize", function() {
+                var center = map.getCenter();
+                google.maps.event.trigger(map, "resize");
+                map.setCenter(center); 
+            });        
+        }
+        
+        function localizarError(err){
+            console.log("Codigo de err:" + err.code + " msj= " + err.message);
+        }
+    
+        
+        // F U N C I O N - - E X T R A 
+        // ___________________________
+        // ___________________________
+        
+        function onVolumeDownKeyDown() {
+            back();
+        }
+        
+	</script>
+</head>
+<body>
+	<div id="home" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a id="btnMenu" href="#menu_home" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<a id="btnIngresar_home" href="#ingresar" class="ui-btn-right" data-icon="user">Ingresar</a>	 	
+		</div>
+
+		<div  id="menu_home" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+			<a href="#favoritos" style="text-decoration:none; color: white;" class="btnfavorito" onclick="$.mobile.loading('show');favoritos();"><p>Favoritos</p></a>
+            <br />
+            <a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+			<br />
+			
+			<a href="#home" style="text-decoration:none; color: red;" data-rel="close" class="salir" onclick="$.mobile.loading('show');salir();"><p>Salir</p></a>
+		</div> 
+
+		<div data-role="content">
+			
+            <center>
+                <h3>[&nbsp;&nbsp;&nbsp;&nbsp;I N M U E B L E S&nbsp;&nbsp;&nbsp;&nbsp;]</h3>
+            </center>
+            <br />
+            <br />
+			<div data-role="navbar">
+				<ul>
+					<li><a id="btnCasa" href="#" class="ui-btn-active ui-state-persist">Casa</a></li>
+					<li><a id="btnApto" href="#">Apartamento</a></li>
+				</ul>
+			</div>
+			
+			<div>
+                <br />
+                <br />
+				<br />
+				<input type="search" id="idBuscar" placeholder="Ingresar Ciudad o Barrio.." />
+				<br />
+                <a id="btnBuscar" class="ui-btn" onclick="$.mobile.loading('show');buscar();">Buscar</a>
+			</div>
+
+		</div><!-- /content -->
+		
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+
+<!-- 
+
+		- O T R A - 
+		P A G I N A
+		 L O G I N 
+
+-->
+
+	<div id="ingresar" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_ingresar" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<a href="#ingresar" class="ui-btn-right" data-icon="user">Ingresar</a>	 	
+		</div>
+
+		<div id="menu_ingresar" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+            <br />
+            <a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+		</div> 
+
+		<div data-role="content">
+            <h2>Login</h2>
+            <label for="ingresar">Ingrese Usuario y Password.</label>
+            <label id="lbluser" style="color:red;"></label>
+			<br />			
+			<input type="text" name="usuario" id="user" placeholder="Usuario" />
+			<input type="password" name="contrasenia" id="pass" placeholder="Password" />
+			<br />
+			<a id="btnIngresar" class="ui-btn" onclick="login()">Ingresar</a>
+		</div>
+		
+        <div data-role="content">
+            <a href="#registrar" class="ui-btn" style="background: #5ea82d; color: white;"><p>Registrar!</p></a>
+        </div>
+        
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+    
+<!-- 
+
+		- O T R A - 
+		P A G I N A
+		 REGISTRO 
+
+-->
+
+	<div id="registrar" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_registrar" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+       <!-- <a href="#ingresar" class="ui-btn-right" data-icon="user">Ingresar</a> -->
+		</div>
+
+		<div id="menu_registrar" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+            <br />
+			<a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+		</div> 
+
+		<div data-role="content">
+            <h2>Registro</h2>
+            <label>Ingrese los datos.</label>
+            <label id="lblregistro" style="color:red;"></label>
+			<br />			
+            <input type="text" name="nombre" id="nom_r" placeholder="Nombre" />
+            <input type="tel" name="tel" id="tel_r" placeholder="Telefono" />
+			<input type="text" name="usuario" id="user_r" placeholder="Usuario" />
+			<input type="password" name="contrasenia" id="pass_r" placeholder="Password" />
+            <input type="password" name="contrasenia2" id="pass2_r" placeholder="Confirmar password" />
+			<span id="msj_r" style="color: red;"></span>
+            <br>
+		</div>
+        <div data-role="content">
+            <a class="ui-btn" style="background: #5ea82d; color: white;" onclick="registrar()"><p>Confirmar</p></a>
+            <span style="font-style: italic;">(*) Todos los campos son obligatorios.</span>
+        </div>
+        
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+
+<!-- 
+
+		- O T R A - 
+		P A G I N A
+		 RESULTADO 
+
+-->
+
+	<div id="resultado" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_resultado" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<a id="btnIngresar_resultado" href="#ingresar" class="ui-btn-right" data-icon="user">Ingresar</a>	 	
+		</div>
+
+		<div  id="menu_resultado" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+			<a href="#favoritos" style="text-decoration:none; color: white;" class="btnfavorito" onclick="$.mobile.loading('show');favoritos();"><p>Favoritos</p></a>
+            <br />
+            <a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+			<br />
+			
+			<a href="index.html" style="text-decoration:none; color: red;" onclick="$.mobile.loading('show');salir();" class="salir"><p>Salir</p></a>
+
+		</div> 
+
+		<div id="contenido_resultado" data-role="content">
+			<ul id="lista" data-role='listview' data-inset="true">
+			</ul>
+		</div>
+		
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+
+<!-- 
+
+		- O T R A - 
+		P A G I N A
+		  DETALLE 
+
+-->
+	<div id="detalle" data-role="page" data-theme="b">
+   
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_ingresar" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<button data-icon="star" style="color:yellow;" class="btnfavorito" onclick="$.mobile.loading('show');agregarFavorito();">Favorito?</button>
+		</div>
+
+		<div id="menu_ingresar" data-role="panel">
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+			<a href="#favoritos" style="text-decoration:none; color: white;" class="btnfavorito" onclick="$.mobile.loading('show');favoritos();"><p>Favoritos</p></a>
+            <br />
+            <a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+			<br />
+			
+			<a href="index.html" style="text-decoration:none; color: red;" onclick="$.mobile.loading('show');salir();" class="salir"><p>Salir</p></a>
+
+		</div>
+        
+        <!-- Todo el contenido -->
+        <div data-role="content">
+        
+            <div id="contenido_basico" data-role="content">
+                <h2 id="title"></h2>
+                <p id="price"></p>
+                <p id="op"></p>
+                <span>Contacto: </span><a id="contact" style="text-decoration:none; color: #e4ee5d;"></a>
+            </div>
+
+            <div id="wrapper">
+                <div id="galeria" class="callbacks_container">
+                    
+                </div>
+           </div>
+
+            <div id="containerMapa" data-role="content">
+                <div id="mapa" data-role="content">
+                </div>
+            </div>
+            
+            
+            <div id="contenido_detalle" data-role="content">
+            </div>
+            
+        </div>
+        
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+    
+<!-- 
+
+		- O T R A - 
+		P A G I N A
+		 FAVORITOS 
+
+-->
+
+	<div id="favoritos" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_favoritos" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<a id="btnIngresar_favoritos" href="#" class="ui-btn-right" data-icon="user">Ingresar</a>	 	
+		</div>
+
+		<div  id="menu_favoritos" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+			<a id="btnFavorito_favoritos" href="#favoritos" style="text-decoration:none; color: white;" class="btnfavorito" onclick="$.mobile.loading('show');favoritos();"><p>Favoritos</p></a>
+            <br />
+            <a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+			<br />
+			
+			<a href="index.html" style="text-decoration:none; color: red;" onclick="$.mobile.loading('show');salir();" class="salir"><p>Salir</p></a>
+
+		</div> 
+
+		<div id="contenido_favoritos" data-role="content">
+			<ul id="lista_f" data-role='listview' data-inset="true">
+			</ul>
+		</div>
+		
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+    
+ <!-- 
+
+		- O T R A - 
+		P A G I N A
+      DETALLE_FAVORITO 
+
+-->
+	<div id="detalle_favorito" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_ingresar_favorito" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<button data-icon="delete" style="color:red;" class="btnfavorito" onclick="$.mobile.loading('show');eliminarFavorito();">Favorito?</button> 	
+		</div>
+
+		<div id="menu_ingresar_favorito" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+			<a href="#favoritos" style="text-decoration:none; color: white;" class="btnfavorito" onclick="$.mobile.loading('show');favoritos();"><p>Favoritos</p></a>
+            <br />
+            <a style="text-decoration:none; color: #e4ee5d;" onclick="ubicarme();"><p>En dónde estoy?</p></a>
+			<br />
+			
+			<a href="index.html" style="text-decoration:none; color: red;" onclick="$.mobile.loading('show');salir();" class="salir"><p>Salir</p></a>
+
+		</div> 
+        
+        <!-- Todo el contenido -->
+        <div data-role="content">
+        
+            <div id="contenido_basico_f" data-role="content">
+                <h2 id="title_f"></h2>
+                <p id="price_f"></p>
+                <p id="op_f"></p>
+                <span>Contacto: </span><a id="contact_f" style="text-decoration:none; color: #e4ee5d;"></a>
+            </div>
+
+            <div id="wrapper">
+                <div id="galeria_f" class="callbacks_container">
+                    
+                </div>
+           </div>
+
+            <div id="containerMapa_f" data-role="content">
+                <div id="mapa_f" data-role="content">
+                </div>
+            </div>
+            
+            
+            <div id="contenido_detalle_f" data-role="content">
+            </div>
+            
+        </div>
+        
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+    
+<!-- 
+
+		- O T R A - 
+		P A G I N A
+         UBICACION
+
+-->
+    
+    <div id="ubicacion" data-role="page" data-theme="b">
+		<div data-role="header" data-position="fixed">
+			<a href="#menu_ubicacion" data-role="button" data-icon="bars" data-iconpos="notext"></a>
+			<h1>BuscApp</h1>
+			<a id="btnIngresar_ubicacion" href="#ingresar" class="ui-btn-right" data-icon="user">Ingresar</a>	 	
+		</div>
+
+		<div  id="menu_ubicacion" data-role="panel"> 
+			<h2>M . E . N . U</h2>
+			<br />
+			<a href="#home" style="text-decoration:none; color: white;"><p>Home</p></a>
+			<a href="#favoritos" style="text-decoration:none; color: white;" class="btnfavorito" onclick="$.mobile.loading('show');favoritos();"><p>Favoritos</p></a>
+			<br />
+			
+			<a href="#home" style="text-decoration:none; color: red;" data-rel="close" class="salir" onclick="$.mobile.loading('show');salir();"><p>Salir</p></a>
+		</div> 
+
+		<div data-role="content">
+            <center>
+                <h3>[&nbsp;&nbsp;&nbsp;&nbsp;I N M U E B L E S&nbsp;&nbsp;&nbsp;&nbsp;]</h3>
+            </center>
+            <p><b><i>Su ubicación...</i></b></p>
+            <div id="containerMapa_u" data-role="content">
+                <div id="mapa_u" data-role="content">
+                </div>
+            </div>
+            <a href="#" class="ui-btn" style="background: #5ea82d; color: white;" onclick="localizar_u();"><p>Actualizar ubicación</p></a>
+		</div><!-- /content -->
+		
+        
+		<div data-role="footer" data-position="fixed" data-fullscreen="false">
+			<div data-role="control-group">
+				<button data-icon="back" data-iconpos="notext" onclick="back()"></button>
+				<a href="#home" data-role="button" data-icon="home" data-iconpos="notext" class="ui-btn-right"></a>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
